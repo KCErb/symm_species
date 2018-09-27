@@ -4,9 +4,14 @@ version: 0.1.0
 authors:
   - KC Erb <iamkcerb@gmail.com>
 
+description: |
+  Crystallographic symmetry exploration tools for the 212 "nonmagnetic" Aizu species.
+
 dependencies:
   symm32:
-    path: ../symm32
+    gitlab: crystal-symmetry/symm32
+    version: 1.0.0
+
 crystal: 0.26.1
 
 license: MIT
