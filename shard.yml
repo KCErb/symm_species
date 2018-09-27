@@ -1,0 +1,12 @@
+name: symm_species
+version: 0.1.0
+
+authors:
+  - KC Erb <iamkcerb@gmail.com>
+
+dependencies:
+  symm32:
+    path: ../symm32
+crystal: 0.26.1
+
+license: MIT
