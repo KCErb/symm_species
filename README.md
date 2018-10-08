@@ -1,6 +1,6 @@
 # SymmSpecies
 
-`SymmSpecies` is a [Crystal](https://crystal-lang.org/) library for working with the 212 non-magnetic [Aizu species](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.2.754). i.e. we are interested in the specific, symmetrically distinct, orientations of the crystallographic point groups (see [Symm32](https://gitlab.com/crystal-symmetry/symm32)) "within" one another.
+`SymmSpecies` is a [Crystal (programming language)](https://crystal-lang.org/) library for working with the 212 non-magnetic [Aizu species](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.2.754). i.e. we are interested in the specific, symmetrically distinct, orientations of the crystallographic point groups (see [Symm32](https://gitlab.com/crystal-symmetry/symm32)) "within" one another.
 
 ## Installation
 

@@ -1,4 +1,11 @@
 require "symm32"
+
+module SymmSpecies
+  VERSION = "1.0.0"
+
+  include Symm32
+end
+
 require "./*"
 
 # Namespace for tools that turn the 32 point groups provided by
@@ -11,10 +18,6 @@ require "./*"
 # of this module, taking any two point groups and determining the possible
 # orientations.
 module SymmSpecies
-  VERSION = "0.1.0"
-
-  include Symm32
-
   # Simple struct for associating a number and name with an `Orientation`.
   struct Species
     # Species name, determined by parent.name and `Orientation#child_name`.
@@ -77,8 +80,15 @@ module SymmSpecies
     LIST.select { |species| species.number == num }.first
   end
 
-  # Get species where the parent PointGroup is `parent`.
-  def self.species_for(parent : PointGroup)
-    LIST.select { |species| species.parent == parent }
+  # Get species where the parent PointGroup is `parent` if provided
+  # and child group is child if provided. If neither provided, returns
+  # all species.
+  def self.species_for(parent = nil, child = nil)
+    LIST.select do |species|
+      result = true
+      result &= species.parent == parent if parent
+      result &= species.child == child if child
+      result
+    end
   end
 end

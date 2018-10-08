@@ -14,7 +14,7 @@ module SymmSpecies
     # Calculates the orientations of `#child` within `#parent`. Returns
     # an array of `Orientation`s.
     def calculate_orientations
-      return @orientations unless Cardinality.fits_within?(parent, child)
+      return @orientations unless Cardinality.fits_within?(child, parent)
       child_z_direction = child.select_direction(Axis::Z)
       return handle_no_z unless child_z_direction
 
@@ -38,7 +38,7 @@ module SymmSpecies
     private def is_valid?(parent_direction, child_z_direction)
       valid = true
       valid &= is_unique?(parent_direction)
-      valid &= Cardinality.fits_within?(parent_direction, child_z_direction)
+      valid &= Cardinality.fits_within?(child_z_direction, parent_direction)
     end
 
     private def build_orientations_in(parent_direction)
@@ -63,8 +63,8 @@ module SymmSpecies
     #      and the parent has 2-fold rotations at T0 T45 T90 and T135.
     #      Let's call these ABCD, then the correct subsets are [AC, BD]
     #      meaning we map T0 and T90 first to themselves and then to T45 and T135
-    #   2. Now let's say that the child plane has 2,m,2,m: 4 plane isometries
-    #      at T0, T45, etc. And the parent has both 2 and m on each of those 4 axes
+    #   2. Now let's say that the child plane has 2,m,2,m (2 at T0, m at T45 )
+    #      (2 at T90 etc.) And the parent has both 2 and m on each of those 4 axes
     #      then the correct subsets are ABCD and BCDA
     #
     # Thus we have two methods for determining subsets as seen below.
@@ -92,6 +92,7 @@ module SymmSpecies
       i = 0
       groups = parent_plane.group_by { |dir| i += 1; i % step_size }
       groups.each do |_, plane|
+        next unless Cardinality.fits_within?(@child_plane, plane)
         classification = plane[0].classification
         next if classifications.includes? classification
         classifications << classification

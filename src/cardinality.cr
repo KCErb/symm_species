@@ -36,11 +36,25 @@ module SymmSpecies
     #
     # Subset, in this case, is defined such that for each isometry kind
     # in self, other has at least as many as self.
-    def self.fits_within?(parent, child)
-      parent_card = compute_cardinality(parent.isometries)
+    def self.fits_within?(child, parent)
       child_card = compute_cardinality(child.isometries)
-      child_card.all? do |kind, count|
-        parent_card[kind]? && parent_card[kind] >= count
+      parent_card = compute_cardinality(parent.isometries)
+      fits_within?(child_card, parent_card)
+    end
+
+    # Is child a "subset" of parent (in terms of cardinality)?
+    #
+    # Subset, in this case, is defined such that for each isometry kind
+    # in self, other has at least as many as self.
+    def self.fits_within?(child_arr : Array, parent_arr : Array)
+      child_card = compute_cardinality_arr(child_arr)
+      parent_card = compute_cardinality_arr(parent_arr)
+      fits_within?(child_card, parent_card)
+    end
+
+    private def self.fits_within?(child : IsometryCardinality, parent : IsometryCardinality)
+      child.all? do |kind, count|
+        parent[kind]? && parent[kind] >= count
       end
     end
 

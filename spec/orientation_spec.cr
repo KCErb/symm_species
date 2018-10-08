@@ -42,7 +42,7 @@ module SymmSpecies
       parent = Symm32.point_group("mm2")
       parent_z = parent.directions.first
       o = Orientation.new(child, parent, parent_z)
-      o.correspondence[child.directions.first].should eq parent_z
+      o.correspondence.first[1].should eq parent_z
     end
 
     describe "#child_name" do
@@ -60,6 +60,11 @@ module SymmSpecies
         species = SymmSpecies.number(154)
         species.orientation.child_name.should eq "mm2++"
       end
+
+      it "determines child_name for species 176" do
+        species = SymmSpecies.number(176)
+        species.orientation.child_name.should eq "mm2+\\"
+      end
     end
 
     describe "#complete" do
@@ -70,8 +75,20 @@ module SymmSpecies
         o = Orientation.new(child, parent, parent_z)
         parent_plane = parent.directions_perp_to(Axis::Z)
         o.complete([parent_plane[0], parent_plane[2]])
-        o.correspondence[child.plane.first].should eq parent_plane.first
-        o.correspondence[child.plane[1]].should eq parent_plane[2]
+
+        # find, then verify
+        pair = o.correspondence.find do |o_child, _|
+          o_child == child.plane.first
+        end.not_nil!
+
+        pair[1].should eq parent_plane.first
+
+        pair = o.correspondence.find do |o_child, _|
+          o_child == child.plane[1]
+        end.not_nil!
+
+        pair[1].should eq parent_plane[2]
+
         # check classification too
         o.plane_classification.should eq AxisKind::Planar
       end
@@ -83,7 +100,12 @@ module SymmSpecies
         o = Orientation.new(child, parent, parent_z)
         parent_plane = parent.directions_perp_to(Axis::Z)
         o.complete([parent_plane[0], parent_plane[2]])
-        o.correspondence[child.diags.first].should eq parent.diags.first
+
+        pair = o.correspondence.find do |o_child, _|
+          o_child == child.diags.first
+        end.not_nil!
+        pair[1].should eq parent.diags.first
+
         # check classification too
         o.plane_classification.should eq AxisKind::OnAxes
       end
@@ -119,6 +141,10 @@ module SymmSpecies
         child.orientation.subset?(parent.orientation).should be_true
         child = SymmSpecies.number(207) # 4/mmm => m+ - interesting no?
         child.orientation.subset?(parent.orientation).should be_false
+        # Neighbors aren't subsets, 198 is not a subset of 199
+        parent = SymmSpecies.number(199) # m3bm => mmm+\
+        child = SymmSpecies.number(198)  # m3bm => mmm++
+        child.orientation.subset?(parent.orientation).should be_false
       end
     end
 
@@ -129,9 +155,9 @@ module SymmSpecies
       parent_z = parent.directions.first
       o = Orientation.new(child, parent, parent_z)
       o2 = o.clone
-      child_z_direction = child.select_direction(Axis::Z).not_nil!
-      o2.correspondence[child_z_direction] = parent.directions[1]
-      o.correspondence[child_z_direction].should eq parent_z
+      o.child.should eq o2.child
+      o.parent.should eq o2.parent
+      o.correspondence.should eq o2.correspondence
     end
 
     describe "equality" do

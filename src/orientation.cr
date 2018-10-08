@@ -1,7 +1,7 @@
 module SymmSpecies
   # The orientation of a `child` point group within a `parent` point group.
   #
-  # `#correspondence` is an array of `Tuple`s pair showing how
+  # `#correspondence` is an array of `Tuple`s, paired to show how
   # each child direction is mapped to a parent direction.
   #
   # For example, consider point group `2` and its orientations in `422`.
@@ -31,8 +31,8 @@ module SymmSpecies
     # i.e. `correspondence.first` will often be the following tuple:
     # {child's Z, parent's Z)}
     # or if the child's z direction is in the paren't plane:
-    # {child's z-direction => parent's T0}
-    property correspondence = Hash(Direction, Direction).new
+    # {child's z-direction, parent's T0}
+    property correspondence = Array(Tuple(Direction, Direction)).new
 
     # Parent's classification ([`Symm32::AxisKind`](https://crystal-symmetry.gitlab.io/symm32/Symm32/AxisKind.html))
     # of the direction in which the child has
@@ -68,7 +68,7 @@ module SymmSpecies
       @parent_direction = parent_direction
       if parent_direction
         child_z_direction = child.select_direction(Axis::Z)
-        @correspondence[child_z_direction] = parent_direction if child_z_direction
+        @correspondence << {child_z_direction, parent_direction} if child_z_direction
         @axis_classification = parent_direction.classification
       end
     end
@@ -99,18 +99,26 @@ module SymmSpecies
     # is a subset of 4 (wrt 4/mmm) but 2_ is not.
     def subset?(other : Orientation)
       return false if parent != other.parent
-      return false unless Cardinality.fits_within?(other.child, child) # origin cardinality
+      return false unless Cardinality.fits_within?(child, other.child) # origin cardinality
       return true unless @parent_direction                             # if no dir, then origin check was enough
+
       # ensure that for all directions an equivalent direction can be found
-      # in other (equiv. wrt. common parent)
-      correspondence.all? do |child_dir, parent_dir|
-        top_dirs = other.correspondence.select do |_, top_parent_dir|
+      # in other (equiv. wrt. common parent). Thus we delete as we find
+      # to make sure they all get their own. This is a quick and dirty
+      # solution to the harder "marriage problem":
+      # https://en.wikipedia.org/wiki/Hall%27s_marriage_theorem
+      candidates = other.correspondence.dup
+      correspondence.each do |child_dir, parent_dir|
+        top_dirs = candidates.select do |_, top_parent_dir|
           parent_dir.classification == top_parent_dir.classification
         end
-        top_dirs.any? do |top_child_dir, _|
-          Cardinality.fits_within?(top_child_dir, child_dir)
+        # requests << top_dirs.select do |top_child_dir, _|
+        dir = top_dirs.find do |top_child_dir, _|
+          Cardinality.fits_within?(child_dir, top_child_dir)
         end
+        dir ? candidates.delete(dir) : return false
       end
+      true
     end
 
     # Complete the correspondence between parent and child using an array of parent
@@ -128,7 +136,7 @@ module SymmSpecies
 
     private def orient_plane(child_plane, parent_plane)
       child_plane.each_with_index do |child_dir, index|
-        correspondence[child_dir] = parent_plane[index]
+        @correspondence << {child_dir, parent_plane[index]}
       end
     end
 
@@ -151,7 +159,7 @@ module SymmSpecies
         parent_coords = x_hat * x + y_hat * y + z_hat * z
         parent_dir = parent.select_direction(parent_coords)
         break self.valid = false unless parent_dir
-        correspondence[child_dir] = parent_dir
+        @correspondence << {child_dir, parent_dir}
       end
     end
 
@@ -175,7 +183,7 @@ module SymmSpecies
     def fingerprint
       return %Q{Origin => {#{child.isometries.map(&.kind).join(" | ")}}} if correspondence.empty?
       # sort to axis enum value for consistency
-      sorted = correspondence.to_a.sort_by { |k, v| v.axis.value }.to_h
+      sorted = correspondence.sort_by { |child, parent| parent.axis.value }
       fingerprint = ""
       sorted.each do |child_direction, parent_direction|
         fingerprint += "#{parent_direction.classification} => {#{child_direction.kinds}} "

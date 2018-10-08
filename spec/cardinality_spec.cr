@@ -32,11 +32,11 @@ module SymmSpecies
     end
 
     it "#fits_within when true" do
-      Cardinality.fits_within?(foo1, foo2).should be_true
+      Cardinality.fits_within?(foo2, foo1).should be_true
     end
 
     it "#fits_within when false" do
-      Cardinality.fits_within?(foo2, foo1).should be_false
+      Cardinality.fits_within?(foo1, foo2).should be_false
     end
 
     describe "#count_fits_arr" do
