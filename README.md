@@ -31,7 +31,7 @@ For further documentation, please see [the docs](https://crystal-symmetry.gitlab
 
 Contributions are welcome! To get things started you can [open an issue](https://gitlab.com/crystal-symmetry/symm_species/issues/new) and post a comment, correction, or feature request. From there we can talk about how best to incorporate (or not) your feedback.
 
-Please note! Your contribution should include tests and be well documented. If you're new to crystal then you might want to at least read this section of the docs: [Writing Shards](https://crystal-lang.org/docs/guides/writing_shards.html).
+Please note! Your contribution should include tests and be well documented. If you're new to crystal then you might want to at least read this section of the docs: [Writing Shards](https://crystal-lang.org/docs/guides/writing_shards.html). Also, beware, **the docs are generated in this project like so: `crystal docs src/symm_species.cr`** since the initialization of this module is order-dependent.
 
 In general, if you want, you can just pull this code down, start hacking on it, and then push it back here as a "Pull Request", then we can discuss your proposed changes.
 
