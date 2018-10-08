@@ -18,7 +18,7 @@ dependencies:
 require "symm_species"
 ```
 
-Your application will now have available to it the array `SymmSpecies::LIST` and the helper methods `SymmSpecies.number(num)` to get a species by number and `SymmSpecies.species_for(parent)` for accessing the species where the point group `parent` is a parent.
+Your application will now have available to it the array `SymmSpecies::LIST` and the helper methods `SymmSpecies.number(num)` to get a species by number and `SymmSpecies.species_for(parent: parent, child: child)` for accessing the species where the point group `parent` is a parent and the point group `child` is a child. Since this is named tuple, both arguments are optional. If you provide only child, all species where that group is a child will be returned without regard for parent (for example).
 
 Examples of Crystal applications that use this shard:
 
