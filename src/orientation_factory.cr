@@ -56,16 +56,14 @@ module SymmSpecies
       end
     end
 
-    # There are two kinds of ways the parent plane could fit into the child plane
-    # since these are non-obvious I'll explain by example
-    #
-    #   1. Let's say the child plane has 2-fold rotations at T0 and T90
-    #      and the parent has 2-fold rotations at T0 T45 T90 and T135.
-    #      Let's call these ABCD, then the correct subsets are [AC, BD]
-    #      meaning we map T0 and T90 first to themselves and then to T45 and T135
-    #   2. Now let's say that the child plane has 2,m,2,m (2 at T0, m at T45 )
-    #      (2 at T90 etc.) And the parent has both 2 and m on each of those 4 axes
-    #      then the correct subsets are ABCD and BCDA
+    # There are two ways the parent plane could fit into the child
+    # plane. If they are the same size (method 1 below), then we should
+    # just match ABCD => ABCD and then ABCD => BCDA.
+    # If they are different size (method 2) then we should alternately
+    # select. So the parent's ABCD would get chopped up into two subplane
+    # of AC and BD, the result is that if a child had AB in t0 and t90, then
+    # that'll get paired with the parent's AC => t0, t90
+    # and for the other BD => t45, 135.
     #
     # Thus we have two methods for determining subsets as seen below.
     private def plane_subsets(parent_direction)
@@ -75,39 +73,18 @@ module SymmSpecies
 
       step_size = parent_plane.size / @child_plane.size
 
-      if fits <= step_size
-        plane_subsets_method_1(step_size, fits, parent_plane)
+      if step_size == 1
+        plane_subsets_method_1(fits, parent_plane)
       else
-        plane_subsets_method_2(fits, parent_plane)
+        plane_subsets_method_2(step_size, parent_plane)
       end
-    end
-
-    # See docs for plane_subsets
-    # We achieve the AC, BD pattern by the modulus of the index i
-    # we track classification to ensure parent only returns
-    # unique subsets from its perspective
-    private def plane_subsets_method_1(step_size, fits, parent_plane)
-      subsets = [] of Array(Direction)
-      classifications = [] of AxisKind
-      i = 0
-      groups = parent_plane.group_by { |dir| i += 1; i % step_size }
-      groups.each do |_, plane|
-        next unless Cardinality.fits_within?(@child_plane, plane)
-        classification = plane[0].classification
-        next if classifications.includes? classification
-        classifications << classification
-        subsets << plane
-      end
-      # if fits < step_size, then step_size produces too many fits so we s
-      subsets = subsets[0, fits] if fits < step_size
-      subsets
     end
 
     # See docs for plane_subsets
     # We achieve the ABCD, BCDA pattern by shuffling the array
     # we track classification to ensure parent only returns
     # unique subsets from its perspective
-    private def plane_subsets_method_2(fits, parent_plane)
+    private def plane_subsets_method_1(fits, parent_plane)
       subsets = [] of Array(Direction)
       classifications = [] of AxisKind
       fits.times do
@@ -118,6 +95,36 @@ module SymmSpecies
         # shuffle front to back
         last = parent_plane.shift
         parent_plane << last
+      end
+      subsets
+    end
+
+    # See docs for plane_subsets
+    # We achieve the AC, BD pattern by the modulus of the index i
+    # we track classification to ensure parent only returns
+    # unique subsets from its perspective.
+    #
+    # Also, it turns out that the members of ABCD might have
+    # different classifications, so you really must
+    # try AC, BD, CA, and DB too. Which is a little tricky. See below.
+    private def plane_subsets_method_2(step_size, parent_plane)
+      double = parent_plane.concat(parent_plane)
+      subsets = [] of Array(Direction)
+      classifications = [] of AxisKind
+      i = 0
+      groups = double.group_by { |dir| i += 1; i % step_size }
+      # Go through each doubled subset, ie [ABAB], [CDCD]
+      groups.values.each do |doubled_subset|
+        # Each cons of the above minus 1 => AB, BA
+        doubled_subset[0...-1].each_cons(@child_plane.size) do |plane|
+          # Finally we have a plane: AB, or CD, or BA etc
+          # For 3 you'd get: ACE, CEA, EAC, BDF, DFB, FBD, get the picture?
+          next unless Cardinality.fits_within?(@child_plane, plane)
+          classification = plane[0].classification
+          next if classifications.includes? classification
+          classifications << classification
+          subsets << plane
+        end
       end
       subsets
     end
