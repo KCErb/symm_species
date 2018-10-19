@@ -196,9 +196,9 @@ module SymmSpecies
 
         # make fingerprint - each classification in parent
         # just gets a set of isometry symbols
-        groups = sorted.group_by { |_, parent| parent.classification  }
+        groups = sorted.group_by { |_, parent| parent.classification }
         groups.each do |classification, corr_arr|
-          kinds = corr_arr.flat_map { |c, p| c.kinds.to_a  }.to_set
+          kinds = corr_arr.flat_map { |c, p| c.kinds.to_a }.to_set
           fingerprint[classification] = kinds
         end
       end
