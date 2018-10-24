@@ -45,28 +45,6 @@ module SymmSpecies
       o.correspondence.first[1].should eq parent_z
     end
 
-    describe "#child_name" do
-      it "determines child_name for species 4" do
-        species = SymmSpecies.number(4)
-        species.orientation.child_name.should eq "m"
-      end
-
-      it "determines child_name for species 27" do
-        species = SymmSpecies.number(27)
-        species.orientation.child_name.should eq "m|"
-      end
-
-      it "determines child_name for species 154" do
-        species = SymmSpecies.number(154)
-        species.orientation.child_name.should eq "mm2++"
-      end
-
-      it "determines child_name for species 176" do
-        species = SymmSpecies.number(176)
-        species.orientation.child_name.should eq "mm2+\\"
-      end
-    end
-
     describe "#complete" do
       it "completes child with T plane" do
         child = Symm32.point_group("222")

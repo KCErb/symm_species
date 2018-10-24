@@ -21,6 +21,7 @@ module SymmSpecies
   struct Orientation
     getter child : PointGroup
     getter parent : PointGroup
+    property child_name : String
 
     # The direction in the parent where the Z direction of the child goes.
     # Parent may not have any direction since directions have axes
@@ -66,25 +67,12 @@ module SymmSpecies
 
     def initialize(@child, @parent, parent_direction = nil)
       @parent_direction = parent_direction
+      @child_name = @child.name
       if parent_direction
         child_z_direction = child.select_direction(Axis::Z)
         @correspondence << {child_z_direction, parent_direction} if child_z_direction
         @axis_classification = parent_direction.classification
       end
-    end
-
-    # How should the parent adjust the name of the child to give it
-    # a distinct name based on orientation?
-    #
-    # For example, if the parent
-    # is 422 it has 2 children for point group 2. So it will name
-    # the one oriented along the axis "2|" and the one oriented in
-    # the plane "2_". These strings come from `AxisKind#symbol`
-    def child_name
-      name = child.name
-      name += axis_classification.symbol
-      name += plane_classification.symbol if parent.family.cubic?
-      name
     end
 
     # Determine if an orientation could be considered a "subset" of this one.

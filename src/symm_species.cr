@@ -18,45 +18,6 @@ require "./*"
 # of this module, taking any two point groups and determining the possible
 # orientations.
 module SymmSpecies
-  # Simple struct for associating a number and name with an `Orientation`.
-  struct Species
-    # Species name, determined by parent.name and `Orientation#child_name`.
-    #
-    # Examples
-    # ```text
-    # 145. 6/mmm > 1
-    # 146. 23 > 3\
-    # 147. 23 > 222++
-    # ```
-    getter name : String
-    getter number : Int32
-    getter orientation : Orientation
-
-    def initialize(@number, @orientation)
-      @name = "#{number}. #{parent.name} > #{orientation.child_name}"
-    end
-
-    # Returns the result of calling this method on `#orientation`.
-    delegate child, parent, to: @orientation
-
-    # Number of orientational domain states. Mathematically the concept is very
-    # simple: `parent.order / child.order`. In terms of symmetry the idea is a bit
-    # more rich but I won't go into too much detail here, the basic idea is
-    # that if you're breaking the symmetry of an object to go from parent to child
-    # `n_domain` returns the number of unique ways this can be done.
-    def n_domain
-      parent.order / child.order
-    end
-
-    # Array of child directions where the axis has been changed
-    # to the parent's axis.
-    def reoriented_child
-      orientation.correspondence.map do |child_dir, parent_dir|
-        Direction.new(parent_dir.axis, child_dir.isometries)
-      end
-    end
-  end
-
   # This is *the* array which holds all of the results of this module (the 212
   # species).
   LIST = [] of Species
@@ -75,6 +36,9 @@ module SymmSpecies
     end
   end
 
+  # Set `child_name` on orientations that need a special name to distinguish
+  NameFactory.generate_names
+
   # Get species by number
   def self.number(num : Int32)
     LIST.select { |species| species.number == num }.first
@@ -83,6 +47,8 @@ module SymmSpecies
   # Get species where the parent PointGroup is `parent` if provided
   # and child group is child if provided. If neither provided, returns
   # all species.
+  #
+  # parent_name or child_name must be a string, the name of the group
   def self.species_for(parent = nil, child = nil)
     LIST.select do |species|
       result = true
