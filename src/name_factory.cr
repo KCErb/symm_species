@@ -1,15 +1,5 @@
 module SymmSpecies
-  module NameFactory
-    # Determine the summit of each family since that determines uniqueness
-    # among children
-    SUMMITS = Hash(Family, PointGroup).new
-    Family.each do |family|
-      point_groups = POINT_GROUPS.select { |pg| pg.family == family }
-      SUMMITS[family] = point_groups.sort_by(&.isometries.size).last
-    end
-
-    SUMMIT_MAPS = Hash(PointGroup, Array(String)).new
-
+  module NameFactory(T)
     # Convert string name to isometry kind symbol
     STR_TO_SYM = {
       "m'" => :anti_mirror,
@@ -24,16 +14,25 @@ module SymmSpecies
     #
     # The general idea is that if there are just 2, then we need 1 symbol to
     # distinguish them. If 3 or 4 we need 2. So we have two passes here.
-    def self.generate_names
+    def self.generate_names(groups_list, species_list)
+      # Determine the summit of each family since that determines uniqueness
+      # among children
+      summits = Hash(Family, PointGroup).new
+      Family.each do |family|
+        point_groups = groups_list.select { |pg| pg.family == family }
+        summits[family] = point_groups.sort_by(&.isometries.size).last
+      end
+
       # generate summit maps
-      SUMMITS.each do |_, pg|
+      summit_maps = Hash(PointGroup, Array(String)).new
+      summits.each do |_, pg|
         # For each summit find duplicate names, i.e. duplicate child_names
         # and set one symbol on them to distinguish
-        species_arr = SymmSpecies.species_for(parent: pg)
+        species_arr = T.species_for(parent: pg)
         duplicate_names(species_arr).each do |arr_of_same|
-          SUMMIT_MAPS[pg] = [] of String unless SUMMIT_MAPS.has_key?(pg)
+          summit_maps[pg] = [] of String unless summit_maps.has_key?(pg)
           arr_of_same.each do |species|
-            SUMMIT_MAPS[pg] << species.child_name
+            summit_maps[pg] << species.child_name
             set_first_symbol(species)
           end
         end
@@ -41,21 +40,21 @@ module SymmSpecies
         # Now do the same again, those that remain need a second symbol
         duplicate_names(species_arr).each do |arr_of_same|
           arr_of_same.each do |species|
-            SUMMIT_MAPS[pg] << species.child_name
+            summit_maps[pg] << species.child_name
             set_second_symbol(species)
           end
         end
       end
 
       # Now label everything else
-      LIST.each do |species|
-        next if SUMMITS.values.includes?(species.parent)
+      species_list.each do |species|
+        next if summits.values.includes?(species.parent)
         # find summit for species
-        summit = SUMMITS[species.parent.family]
+        summit = summits[species.parent.family]
 
-        if SUMMIT_MAPS[summit]?
-          set_first_symbol(species) if SUMMIT_MAPS[summit].includes? species.child_name
-          set_second_symbol(species) if SUMMIT_MAPS[summit].includes? species.child_name
+        if summit_maps[summit]?
+          set_first_symbol(species) if summit_maps[summit].includes? species.child_name
+          set_second_symbol(species) if summit_maps[summit].includes? species.child_name
         end
       end
     end
@@ -69,11 +68,12 @@ module SymmSpecies
       # Split name into parts like this: "4bm'm" becomes ["4b", "m'", "m"]
       parts = species.child_name.scan(/(\db|\w|\/)'?/m).map(&.[0])
 
-      # Find the first 2 (or m if no 2 is present)
-      idx = parts.index("2'") ||
-            parts.index("2") ||
-            parts.index("m'") ||
-            parts.index("m")
+      # Find the first 2 (or m if no 2 is present), prime after not
+      idx = parts.index("2") ||
+            parts.index("m") ||
+            parts.index("2'") ||
+            parts.index("m'")
+
       raise "cannot determine unique name if no 2 or m in name" unless idx
       idx += 1
       set_name(species, parts, idx)
@@ -82,22 +82,24 @@ module SymmSpecies
     # Set's the second symbol for species where 1 just wasn't enough.
     #
     # In this algorithm we use the same rule 0 as in set_first_symbol.
-    # but now we either mark the first m or the last m or the last 2.
-    # It just depends on what happened in step 1.
     private def self.set_second_symbol(species)
       parts = species.child_name.scan(/(\db|\w|\/|\+|\\|\||_)'?/m).map(&.[0])
-      idx_sym = parts.index('+') ||
-                parts.index('\\') ||
-                parts.index('|') ||
-                parts.index('_')
-      if idx_sym == 1
-        idx = -2
-      else
-        idx = parts.index("m'") ||
-              parts.index("m") ||
-              parts.index("2'") ||
-              parts.index("2")
-      end
+
+      idx_sym = parts.index("+") ||
+                parts.index("\\") ||
+                parts.index("|") ||
+                parts.index("_")
+      raise "nil?" unless idx_sym
+      tmp_parts = parts.dup
+      tmp_parts[idx_sym-1, 2] = ["", ""]
+      # idx = parts.index("m") ||
+      #       parts.index("m'") ||
+      #       parts.index("2") ||
+      #       parts.index("2'")
+      idx = tmp_parts.index("2") ||
+            tmp_parts.index("m") ||
+            tmp_parts.index("2'") ||
+            tmp_parts.index("m'")
       raise "cannot determine unique name if no m or 2 in name" unless idx
       idx += 1
       set_name(species, parts, idx)

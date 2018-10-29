@@ -65,6 +65,8 @@ module SymmSpecies
     # to help toss out an orientation that fails checks.
     property? valid = true
 
+    alias Fingerprint = Hash(AxisKind, Set(Symbol))
+
     def initialize(@child, @parent, parent_direction = nil)
       @parent_direction = parent_direction
       @child_name = @child.name
@@ -173,8 +175,7 @@ module SymmSpecies
     # get identical hashes so long as the same kinds of isometries are in
     # the same "kinds" of places.
     def fingerprint
-      fingerprint = {} of AxisKind => Set(Symbol)
-
+      fingerprint = Fingerprint.new
       if correspondence.empty?
         # all is on origin
         fingerprint[AxisKind::None] = child.isometries.map(&.kind).to_set

@@ -36,8 +36,8 @@ module SymmSpecies
     end
   end
 
-  # Set `child_name` on orientations that need a special name to distinguish
-  NameFactory.generate_names
+  # Set `child_name` on species that need a special name to distinguish
+  NameFactory(SymmSpecies).generate_names(POINT_GROUPS, LIST)
 
   # Get species by number
   def self.number(num : Int32)

@@ -21,7 +21,7 @@ module SymmSpecies
     end
 
     # Returns the result of calling this method on `#orientation`.
-    delegate child, parent, to: @orientation
+    delegate child, parent, fingerprint, to: @orientation
 
     # Number of orientational domain states. Mathematically the concept is very
     # simple: `parent.order / child.order`. In terms of symmetry the idea is a bit
