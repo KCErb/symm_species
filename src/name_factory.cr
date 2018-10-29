@@ -91,7 +91,7 @@ module SymmSpecies
                 parts.index("_")
       raise "nil?" unless idx_sym
       tmp_parts = parts.dup
-      tmp_parts[idx_sym-1, 2] = ["", ""]
+      tmp_parts[idx_sym - 1, 2] = ["", ""]
       # idx = parts.index("m") ||
       #       parts.index("m'") ||
       #       parts.index("2") ||
