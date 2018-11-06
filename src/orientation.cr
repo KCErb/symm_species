@@ -21,7 +21,6 @@ module SymmSpecies
   struct Orientation
     getter child : PointGroup
     getter parent : PointGroup
-    property child_name : String
 
     # The direction in the parent where the Z direction of the child goes.
     # Parent may not have any direction since directions have axes
@@ -69,7 +68,6 @@ module SymmSpecies
 
     def initialize(@child, @parent, parent_direction = nil)
       @parent_direction = parent_direction
-      @child_name = @child.name
       if parent_direction
         child_z_direction = child.select_direction(Axis::Z)
         @correspondence << {child_z_direction, parent_direction} if child_z_direction

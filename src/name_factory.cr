@@ -23,106 +23,100 @@ module SymmSpecies
         summits[family] = point_groups.sort_by(&.isometries.size).last
       end
 
-      # generate summit maps
-      summit_maps = Hash(PointGroup, Array(String)).new
-      summits.each do |_, pg|
+      # generate name maps, the key here is a combination of pointgroup
+      # and species fingerprint because each species will have more than
+      # on name depending on the summit.
+      name_map = Hash({PointGroup, PointGroup, Orientation::Fingerprint}, String).new
+      summits.each do |_, summit|
         # For each summit find duplicate names, i.e. duplicate child_names
-        # and set one symbol on them to distinguish
-        species_arr = T.species_for(parent: pg)
+        # and set one or two symbols on them to distinguish
+        species_arr = T.species_for(parent: summit)
         duplicate_names(species_arr).each do |arr_of_same|
-          summit_maps[pg] = [] of String unless summit_maps.has_key?(pg)
-          arr_of_same.each do |species|
-            summit_maps[pg] << species.child_name
-            set_first_symbol(species)
-          end
+          label_z(arr_of_same, name_map, summit)
+          # arr_of_name_parts = name_to_symbols(arr_of_same)
+          # names_arr = determine_unique_names(arr_of_name_parts)
+          # assign_names(arr_of_same, names_arr, summit, name_map)
         end
-
-        # Now do the same again, those that remain need a second symbol
         duplicate_names(species_arr).each do |arr_of_same|
-          arr_of_same.each do |species|
-            summit_maps[pg] << species.child_name
-            set_second_symbol(species)
-          end
+          label_x(arr_of_same, name_map, summit)
         end
       end
 
       # Now label everything else
       species_list.each do |species|
+        # skip if parent is a summit
         next if summits.values.includes?(species.parent)
-        # find summit for species
         summit = summits[species.parent.family]
-
-        if summit_maps[summit]?
-          set_first_symbol(species) if summit_maps[summit].includes? species.child_name
-          set_second_symbol(species) if summit_maps[summit].includes? species.child_name
+        if name = name_map[{summit, species.child, species.orientation.fingerprint}]?
+          species.child_name = name
         end
       end
     end
 
-    # Set's the first symbol on a species which needs one.
-    #
-    # The idea of the algorithm is:
-    # 0. Use \ or _ if possible, otherwise + or |
-    # 1. Mark the first 2 in the name, m if no 2 present
-    private def self.set_first_symbol(species)
-      # Split name into parts like this: "4bm'm" becomes ["4b", "m'", "m"]
-      parts = species.child_name.scan(/(\db|\w|\/)'?/m).map(&.[0])
-
-      # Find the first 2 (or m if no 2 is present), prime after not
-      idx = parts.index("2") ||
-            parts.index("m") ||
-            parts.index("2'") ||
-            parts.index("m'")
-
-      raise "cannot determine unique name if no 2 or m in name" unless idx
-      idx += 1
-      set_name(species, parts, idx)
-    end
-
-    # Set's the second symbol for species where 1 just wasn't enough.
-    #
-    # In this algorithm we use the same rule 0 as in set_first_symbol.
-    private def self.set_second_symbol(species)
-      parts = species.child_name.scan(/(\db|\w|\/|\+|\\|\||_)'?/m).map(&.[0])
-
-      idx_sym = parts.index("+") ||
-                parts.index("\\") ||
-                parts.index("|") ||
-                parts.index("_")
-      raise "nil?" unless idx_sym
-      tmp_parts = parts.dup
-      tmp_parts[idx_sym - 1, 2] = ["", ""]
-      # idx = parts.index("m") ||
-      #       parts.index("m'") ||
-      #       parts.index("2") ||
-      #       parts.index("2'")
-      idx = tmp_parts.index("2") ||
-            tmp_parts.index("m") ||
-            tmp_parts.index("2'") ||
-            tmp_parts.index("m'")
-      raise "cannot determine unique name if no m or 2 in name" unless idx
-      idx += 1
-      set_name(species, parts, idx)
-    end
-
-    # parts is an array of name parts, idx is the index to insert the symbol at so idx-1
-    # is the index of the part we are naming
-    def self.set_name(species, parts, idx)
-      # Convert it to a symbol
-      sym = idx > 0 ? STR_TO_SYM[parts[idx - 1]] : STR_TO_SYM[parts[idx]]
-
-      # Use rule 0 to get a species character for that element (+/|_)
-      fingerprint = species.orientation.fingerprint
-      has_sym = fingerprint.select { |_, sym_arr| sym_arr.includes?(sym) }
-      if species.parent.family == Family::Cubic
-        classification = has_sym[AxisKind::OffAxes]? ? AxisKind::OffAxes : AxisKind::OnAxes
-      else
-        classification = has_sym[AxisKind::Planar]? ? AxisKind::Planar : AxisKind::Axial
+    # Determine label that z axis should have and apply if it will
+    # help differentiate species
+    private def self.label_z(arr_of_same, name_map, summit)
+      symbols = arr_of_same.map do |species|
+        sym = species.orientation.axis_classification.symbol
       end
+      # only label z axis if it will make the names unique
+      if arr_of_same.size > 2 || symbols.uniq.size > 1
+        arr_of_same.zip(symbols) do |species, sym|
+          idx = child_name_z_index(species)
+          new_name = species.child_name.insert(idx, sym)
+          assign_name(species, new_name, name_map, summit)
+        end
+      end
+    end
 
-      # Stick that in the array at the right spot and save the string of it.
-      new_name = parts.insert(idx, classification.symbol).join("")
-      species.child_name = new_name
+    # finds index to insert a z label in the name using the species
+    # crystal family / Hermann-Mauguin standard name conventions
+    private def self.child_name_z_index(species)
+      name = species.child_name
+      if species.child.family == Family::Orthorhombic
+        name.includes?("1'") ? -3 : -1
+      else
+        parts = name_to_parts(name)
+        # find last part of name that is the z specifier, i.e. m' in the above idx = 2
+        slash_idx = parts.index("/")
+        idx = slash_idx ? slash_idx + 1 : 0
+        # Get length of that part of the string
+        z_string = parts[0..idx].join("")
+        z_string.size
+      end
+    end
+
+    # Determine label x direction should have and apply it.
+    private def self.label_x(arr_of_same, name_map, summit)
+      arr_of_same.each do |species|
+        sym = species.orientation.plane_classification.symbol
+        idx = child_name_x_index(species)
+        new_name = species.child_name.insert(idx, sym)
+        assign_name(species, new_name, name_map, summit)
+      end
+    end
+
+    private def self.child_name_x_index(species)
+      name = species.child_name
+      if species.child.family == Family::Orthorhombic
+        name[1] == "'" ? 2 : 1
+      else
+        name = name[0..-3] if name.includes?("1'")
+        parts = name_to_parts(name)
+        # find last part of name that is the z specifier, i.e. m' in the above idx = 2
+        z_string = parts[0..-2].join("")
+        z_string.size
+      end
+    end
+
+    # Split name into parts like this: "4b/m'mm" becomes ["4b", "/", "m'", "m", "m"]
+    private def self.name_to_parts(name)
+      name.scan(/(\db|\w'|\w|\/)/m).map(&.[0])
+    end
+
+    private def self.assign_name(species, name, name_map, summit)
+      species.child_name = name
+      name_map[{summit, species.child, species.orientation.fingerprint}] = name
     end
 
     # Takes an array of objects which have a `name` property and

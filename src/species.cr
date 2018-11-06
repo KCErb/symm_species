@@ -4,6 +4,7 @@ module SymmSpecies
     getter number : Int32
     getter orientation : Orientation
     property child_name : String
+    alias Fingerprint = {PointGroup, PointGroup, Orientation::Fingerprint}
 
     def initialize(@number, @orientation)
       @child_name = @orientation.child.name
@@ -21,7 +22,7 @@ module SymmSpecies
     end
 
     # Returns the result of calling this method on `#orientation`.
-    delegate child, parent, fingerprint, to: @orientation
+    delegate child, parent, to: @orientation
 
     # Number of orientational domain states. Mathematically the concept is very
     # simple: `parent.order / child.order`. In terms of symmetry the idea is a bit
@@ -38,6 +39,14 @@ module SymmSpecies
       orientation.correspondence.map do |child_dir, parent_dir|
         Direction.new(parent_dir.axis, child_dir.isometries)
       end
+    end
+
+    # Returns a unique identifier for this species among all
+    # species since the orientation fingerprint is unique only
+    # for a specific parent-child combination. note the type:
+    # Tuple(String, String, Fingerprint)
+    def fingerprint : Fingerprint
+      {parent, child, orientation.fingerprint}
     end
   end
 end

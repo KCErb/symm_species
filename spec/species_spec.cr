@@ -48,5 +48,14 @@ module SymmSpecies
         species.child_name.should eq "m\\m2+"
       end
     end
+
+    describe "#fingerprint" do
+      it "has a fingerprint" do
+        species = SymmSpecies.number(154)
+        species.fingerprint[0].should eq species.parent
+        species.fingerprint[1].should eq species.child
+        species.fingerprint[2].should eq species.orientation.fingerprint
+      end
+    end
   end
 end
