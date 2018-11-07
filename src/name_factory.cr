@@ -33,9 +33,6 @@ module SymmSpecies
         species_arr = T.species_for(parent: summit)
         duplicate_names(species_arr).each do |arr_of_same|
           label_z(arr_of_same, name_map, summit)
-          # arr_of_name_parts = name_to_symbols(arr_of_same)
-          # names_arr = determine_unique_names(arr_of_name_parts)
-          # assign_names(arr_of_same, names_arr, summit, name_map)
         end
         duplicate_names(species_arr).each do |arr_of_same|
           label_x(arr_of_same, name_map, summit)
@@ -99,7 +96,7 @@ module SymmSpecies
     private def self.child_name_x_index(species)
       name = species.child_name
       if species.child.family == Family::Orthorhombic
-        name[1] == "'" ? 2 : 1
+        name[1] == '\'' ? 2 : 1
       else
         name = name[0..-3] if name.includes?("1'")
         parts = name_to_parts(name)
@@ -111,7 +108,7 @@ module SymmSpecies
 
     # Split name into parts like this: "4b/m'mm" becomes ["4b", "/", "m'", "m", "m"]
     private def self.name_to_parts(name)
-      name.scan(/(\db|\w'|\w|\/)/m).map(&.[0])
+      name.scan(/(\db'|\db|\w'|\w|\/)/m).map(&.[0])
     end
 
     private def self.assign_name(species, name, name_map, summit)
