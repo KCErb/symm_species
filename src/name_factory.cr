@@ -23,19 +23,24 @@ module SymmSpecies
         summits[family] = point_groups.sort_by(&.isometries.size).last
       end
 
-      # generate name maps, the key here is a combination of pointgroup
-      # and species fingerprint because each species will have more than
-      # on name depending on the summit.
-      name_map = Hash({PointGroup, PointGroup, Orientation::Fingerprint}, String).new
+      # generate name maps, the key here has type species::fingerprint, but
+      # we're not keying by species fingerprint (hence this note). The tricky
+      # part is that we can use that data structure to create an equivalence
+      # class among species, we are just replacing the standard idea of a species
+      # fingerprint with this non-standard one where we always use the summit as
+      # the parent. ye be warned.
+      name_map = Hash(Species::Fingerprint, String).new
       summits.each do |_, summit|
         # For each summit find duplicate names, i.e. duplicate child_names
         # and set one or two symbols on them to distinguish
         species_arr = T.species_for(parent: summit)
+
         duplicate_names(species_arr).each do |arr_of_same|
-          label_z(arr_of_same, name_map, summit)
+          label_dir1(arr_of_same, name_map, summit)
         end
+
         duplicate_names(species_arr).each do |arr_of_same|
-          label_x(arr_of_same, name_map, summit)
+          label_dir2(arr_of_same, name_map, summit)
         end
       end
 
@@ -50,65 +55,57 @@ module SymmSpecies
       end
     end
 
-    # Determine label that z axis should have and apply if it will
+    # Determine label that dir1 should have and apply if it will
     # help differentiate species
-    private def self.label_z(arr_of_same, name_map, summit)
+    private def self.label_dir1(arr_of_same, name_map, summit)
       symbols = arr_of_same.map do |species|
-        sym = species.orientation.axis_classification.symbol
+        sym = species.orientation.dir1_classification.symbol
       end
-      # only label z axis if it will make the names unique
+      # only label dir1 if it will make the names unique
       if arr_of_same.size > 2 || symbols.uniq.size > 1
         arr_of_same.zip(symbols) do |species, sym|
-          idx = child_name_z_index(species)
+          idx = child_name_first_index(species)
           new_name = species.child_name.insert(idx, sym)
           assign_name(species, new_name, name_map, summit)
         end
       end
     end
 
-    # finds index to insert a z label in the name using the species
-    # crystal family / Hermann-Mauguin standard name conventions
-    private def self.child_name_z_index(species)
+    # finds index to insert first label in the name
+    private def self.child_name_first_index(species)
       name = species.child_name
-      if species.child.family == Family::Orthorhombic
-        name.includes?("1'") ? -3 : -1
-      else
-        parts = name_to_parts(name)
-        # find last part of name that is the z specifier, i.e. m' in the above idx = 2
-        slash_idx = parts.index("/")
-        idx = slash_idx ? slash_idx + 1 : 0
-        # Get length of that part of the string
-        z_string = parts[0..idx].join("")
-        z_string.size
-      end
+      parts = name_to_parts(name)
+      # find last part of name that is the z specifier, i.e. m' in the above idx = 2
+      slash_idx = parts.index("/")
+      idx = slash_idx ? slash_idx + 1 : 0
+      # Get length of that part of the string
+      z_string = parts[0..idx].join("")
+      z_string.size
     end
 
-    # Determine label x direction should have and apply it.
-    private def self.label_x(arr_of_same, name_map, summit)
+    # Determine label dir2 should have and apply it.
+    private def self.label_dir2(arr_of_same, name_map, summit)
       arr_of_same.each do |species|
-        sym = species.orientation.plane_classification.symbol
-        idx = child_name_x_index(species)
+        sym = species.orientation.dir2_classification.symbol
+        idx = child_name_second_index(species)
         new_name = species.child_name.insert(idx, sym)
         assign_name(species, new_name, name_map, summit)
       end
     end
 
-    private def self.child_name_x_index(species)
+    private def self.child_name_second_index(species)
       name = species.child_name
-      if species.child.family == Family::Orthorhombic
-        name[1] == '\'' ? 2 : 1
-      else
-        name = name[0..-3] if name.includes?("1'")
-        parts = name_to_parts(name)
-        # find last part of name that is the z specifier, i.e. m' in the above idx = 2
-        z_string = parts[0..-2].join("")
-        z_string.size
-      end
+      name = name[0..-3] if name.includes?("1'")
+      parts = name_to_parts(name)
+      # find last part of name that is the z specifier, i.e. m' in the above idx = 2
+      z_string = parts[0..-2].join("")
+      z_string.size
     end
 
-    # Split name into parts like this: "4b/m'mm" becomes ["4b", "/", "m'", "m", "m"]
+    # Split name into parts like this: "4b'/m'+mm" becomes
+    # ["4b'", "/", "m'+", "m", "m"]
     private def self.name_to_parts(name)
-      name.scan(/(\db'|\db|\w'|\w|\/)/m).map(&.[0])
+      name.scan(/(\db'|\db|\w'|\w|\/)(\||\_|\+|\\)?/m).map(&.[0])
     end
 
     private def self.assign_name(species, name, name_map, summit)

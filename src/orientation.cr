@@ -22,10 +22,6 @@ module SymmSpecies
     getter child : PointGroup
     getter parent : PointGroup
 
-    # The direction in the parent where the Z direction of the child goes.
-    # Parent may not have any direction since directions have axes
-    @parent_direction : Direction | Nil
-
     # correspondence of child direction to parent direction,
     # { child, parent }
     # i.e. `correspondence.first` will often be the following tuple:
@@ -46,9 +42,9 @@ module SymmSpecies
     # `AxisKind::Axial`, in the planar orientation, because the child's
     # Z-direction is in the plane, the `axial_classification` would be
     # `AxisKind::Planar`
-    property axis_classification = AxisKind::None
+    property dir1_classification = AxisKind::None
 
-    # Similar to `axis_classification`. This is an [`Symm32::AxisKind`](https://crystal-symmetry.gitlab.io/symm32/Symm32/AxisKind.html) which
+    # Similar to `dir1_classification`. This is an [`Symm32::AxisKind`](https://crystal-symmetry.gitlab.io/symm32/Symm32/AxisKind.html) which
     # communicates how the parent group views the orientation of the child's
     # T-plane.
     #
@@ -56,23 +52,55 @@ module SymmSpecies
     # of freedom remaining is the rotation of its T-plane elements about
     # that axis. We can consider the first T-plane axis (usually T0) and
     # determine parent's classification of that direction.
-    #
-    # In practice, this only is relavent for cubic parents.
-    property plane_classification = AxisKind::None
-
-    # A little flag for marking orientations as bad, used by the factory
-    # to help toss out an orientation that fails checks.
-    property? valid = true
+    property dir2_classification = AxisKind::None
 
     alias Fingerprint = Hash(AxisKind, Set(Symbol))
 
-    def initialize(@child, @parent, parent_direction = nil)
-      @parent_direction = parent_direction
-      if parent_direction
-        child_z_direction = child.select_direction(Axis::Z)
-        @correspondence << {child_z_direction, parent_direction} if child_z_direction
-        @axis_classification = parent_direction.classification
+    def initialize(@child, @parent, first_pair = nil)
+      if first_pair
+        child_dir1, parent_dir1 = first_pair
+        correspondence << first_pair
+        @dir1_classification = parent_dir1.classification
       end
+    end
+
+    # Attempts to use the first two pairs in the correspondence
+    # array to determine the correspondence of remaining axes.
+    # If it was successful, it returns the orientation, if not
+    # it returns nil.
+    def complete?(second_pair)
+      # Update obj properties from second_pair
+      correspondence << second_pair
+      @dir2_classification = second_pair.last.classification
+
+      # Use the current state of obj to determine coordinate transform
+      # between the two systems
+      child_axes = correspondence.map(&.first.axis.normalized)
+      parent_axes = correspondence.map(&.last.axis.normalized)
+
+      # find axis and rotation angle between first pair
+      axis = child_axes.first.cross(parent_axes.first)
+      angle = Math.asin(axis.magnitude)
+      rot1 = RotationMatrix.new(axis, angle)
+      # find axis and rotation angle between second pair
+      rotated_child = rot1 * child_axes.last
+      axis = rotated_child.cross(parent_axes.last)
+      angle = Math.asin(axis.magnitude)
+      rot2 = RotationMatrix.new(axis, angle)
+      rot3 = rot2 * rot1
+
+      remaining_directions = child.directions - correspondence.map(&.first)
+      remaining_directions.each do |child_dir|
+        parent_coords = rot3 * child_dir.axis.coordinates
+        parent_dir = parent.select_direction(parent_coords)
+        break unless parent_dir
+        correspondence << {child_dir, parent_dir}
+      end
+      correspondence.size == child.directions.size ? self : nil
+    end
+
+    def clone
+      self.class.new(@child, @parent, @correspondence.first)
     end
 
     # Determine if an orientation could be considered a "subset" of this one.
@@ -88,7 +116,7 @@ module SymmSpecies
     def subset?(other : Orientation)
       return false if parent != other.parent
       return false unless Cardinality.fits_within?(child, other.child) # origin cardinality
-      return true unless @parent_direction                             # if no dir, then origin check was enough
+      return true if correspondence.empty? # if no dir, then origin check was enough
 
       # ensure that for all directions an equivalent direction can be found
       # in other (equiv. wrt. common parent). Thus we delete as we find
@@ -109,87 +137,26 @@ module SymmSpecies
       true
     end
 
-    # Complete the correspondence between parent and child using an array of parent
-    # directions which map to the child's planar directions. The `OrientationFactory`
-    # is used for generating the `parent_plane` in a useful order.
-    # This method will mark an orientation as invalid if the
-    # suggested mapping doesn't actually work.
-    def complete(parent_plane)
-      child_plane = child.plane
-      raise "Plane is wrong size." if parent_plane.size != child_plane.size
-      orient_plane(child_plane, parent_plane)
-      handle_cubic(parent_plane) if child.family.cubic?
-      @plane_classification = parent_plane.first.classification
-    end
-
-    private def orient_plane(child_plane, parent_plane)
-      child_plane.each_with_index do |child_dir, index|
-        @correspondence << {child_dir, parent_plane[index]}
-      end
-    end
-
-    # finds new basis vectors relative to orientation of x and z
-    private def handle_cubic(parent_plane)
-      z_hat = @parent_direction.not_nil!.axis.normalized
-      x_hat = parent_plane.first.axis.normalized
-      y_hat = z_hat.cross x_hat
-      orient_non_planar(x_hat, y_hat, z_hat)
-    end
-
-    # looks at each diag/edge direction and converts it in the new coords
-    # to determine if parent has a direction parallel to this axis
-    # marks orientation as invalid if orientation can't be completed
-    private def orient_non_planar(x_hat, y_hat, z_hat)
-      non_planar = child.edges.concat child.diags
-      non_planar.each do |child_dir|
-        break unless valid?
-        x, y, z = child_dir.axis.values
-        parent_coords = x_hat * x + y_hat * y + z_hat * z
-        parent_dir = parent.select_direction(parent_coords)
-        break self.valid = false unless parent_dir
-        @correspondence << {child_dir, parent_dir}
-      end
-    end
-
-    def clone
-      self.class.new(@child, @parent, @parent_direction)
-    end
-
-    # Generates a hash for this orientation which is designed to
-    # be identical for equivalent orientations.
-    #
-    # For example, species 422 => 2_ (#34) can have 4 equivalent `Orientation`
-    # objects. One for each of the planar axes that the 2-fold axis could
-    # correspond to. This method turns that species into the following
-    # string:
-    #
-    # ```text
-    #  { Planar => {:rotation_2} }
-    # ```
-    #
-    # The key in the hash is the parent's classification. The value in the
-    # hash is a set of all isometry kinds on that *type* of axis. Thus
-    # regardless of the order / spatial orientation of the isometries we
-    # get identical hashes so long as the same kinds of isometries are in
-    # the same "kinds" of places.
+    # returns a string distinguishing this orientation from others
     def fingerprint
       fingerprint = Fingerprint.new
       if correspondence.empty?
-        # all is on origin
         fingerprint[AxisKind::None] = child.isometries.map(&.kind).to_set
       else
-        # sort to axis enum value for consistency
-        sorted = correspondence.sort_by { |child, parent| parent.axis.value }
-
-        # make fingerprint - each classification in parent
-        # just gets a set of isometry symbols
-        groups = sorted.group_by { |_, parent| parent.classification }
+        groups = correspondence.group_by { |_, parent| parent.classification }
         groups.each do |classification, corr_arr|
           kinds = corr_arr.flat_map { |c, p| c.kinds.to_a }.to_set
           fingerprint[classification] = kinds
         end
       end
       fingerprint
+    end
+
+    # determine if the two axes of the parent are distinguishable
+    private def axes_indistinguishable?
+      first_two = correspondence[0,2]
+      indistinguishable = first_two.size == 2 &&
+        first_two[0].last.kinds == first_two[1].last.kinds
     end
 
     def_hash fingerprint

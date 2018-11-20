@@ -40,12 +40,12 @@ module SymmSpecies
 
       it "determines child_name for species 154" do
         species = SymmSpecies.number(154)
-        species.child_name.should eq "m+m2+"
+        species.child_name.should eq "m+m+2"
       end
 
       it "determines child_name for species 176" do
         species = SymmSpecies.number(176)
-        species.child_name.should eq "m\\m2+"
+        species.child_name.should eq "m\\m2"
       end
     end
 
