@@ -116,7 +116,7 @@ module SymmSpecies
     def subset?(other : Orientation)
       return false if parent != other.parent
       return false unless Cardinality.fits_within?(child, other.child) # origin cardinality
-      return true if correspondence.empty? # if no dir, then origin check was enough
+      return true if correspondence.empty?                             # if no dir, then origin check was enough
 
       # ensure that for all directions an equivalent direction can be found
       # in other (equiv. wrt. common parent). Thus we delete as we find
@@ -154,9 +154,9 @@ module SymmSpecies
 
     # determine if the two axes of the parent are distinguishable
     private def axes_indistinguishable?
-      first_two = correspondence[0,2]
+      first_two = correspondence[0, 2]
       indistinguishable = first_two.size == 2 &&
-        first_two[0].last.kinds == first_two[1].last.kinds
+                          first_two[0].last.kinds == first_two[1].last.kinds
     end
 
     def_hash fingerprint
