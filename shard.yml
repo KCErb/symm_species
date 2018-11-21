@@ -9,9 +9,9 @@ description: |
 
 dependencies:
   symm32:
-    # gitlab: crystal-symmetry/symm32
-    # version: 2.0.0
-    path: ../symm32
+    gitlab: crystal-symmetry/symm32
+    version: 2.0.0
+    # path: ../symm32
 
 crystal: 0.27.0
 
