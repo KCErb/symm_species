@@ -42,7 +42,7 @@ module SymmSpecies
     it "maps child with no T plane" do
       child = Symm32.point_group("m")
       child_first = child.directions.first
-      parent = Symm32.point_group("mm2")
+      parent = Symm32.point_group("2mm")
       parent_first = parent.directions.first
       o = Orientation.new(child, parent, {child_first, parent_first})
       o.correspondence.first[1].should eq parent_first

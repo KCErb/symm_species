@@ -63,8 +63,8 @@ module SymmSpecies
         orientations_count("m3b", "432").should eq 0
       end
 
-      it "mm2 fits within m3bm thrice" do
-        orientations_count("mm2", "m3bm").should eq 3
+      it "2mm fits within m3bm thrice" do
+        orientations_count("2mm", "m3bm").should eq 3
       end
     end
   end

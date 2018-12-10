@@ -40,6 +40,12 @@ module SymmSpecies
         end
 
         duplicate_names(species_arr).each do |arr_of_same|
+          # guard against labelling 3-fold axis with x-axis label in cubic
+          # this is an edge case which I don't need to handle at the moment
+          # I just realized that the logic here will handle incorrectly.
+          if arr_of_same.first.child.family == Family::Cubic
+            raise "cannot label second direction for cubic child"
+          end
           label_dir2(arr_of_same, name_map, summit)
         end
       end

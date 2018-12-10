@@ -13,7 +13,7 @@ module SymmSpecies
     # an array of `Orientation`s.
     def calculate_orientations
       return @orientations unless Cardinality.fits_within?(child, parent)
-      axis1 = child.family == Family::Orthorhombic ? Axis::T0 : Axis::Z
+      axis1 = Axis::Z
       child_dir1 = child.select_direction(axis1)
       return handle_no_axes unless child_dir1
       # iterate through parent directions, finding possible orientations of
@@ -41,11 +41,7 @@ module SymmSpecies
 
     private def build_orientations_for_pair(child_dir1, parent_direction)
       orientation = Orientation.new(child, parent, {child_dir1, parent_direction})
-      if child.family == Family::Orthorhombic
-        child_dir2 = child.select_direction(Axis::T90)
-      else
-        child_dir2 = child.plane.empty? ? nil : child.plane.first
-      end
+      child_dir2 = child.plane.empty? ? nil : child.plane.first
       return @orientations << orientation unless child_dir2
       orient_axis2(orientation, parent_direction, child_dir2)
     end

@@ -80,12 +80,13 @@ module SymmSpecies
 
       # find axis and rotation angle between first pair
       axis = child_axes.first.cross(parent_axes.first)
-      angle = Math.asin(axis.magnitude)
+      angle = Math.acos(child_axes.first.dot(parent_axes.first))
       rot1 = RotationMatrix.new(axis, angle)
+
       # find axis and rotation angle between second pair
       rotated_child = rot1 * child_axes.last
       axis = rotated_child.cross(parent_axes.last)
-      angle = Math.asin(axis.magnitude)
+      angle = Math.acos(rotated_child.dot(parent_axes.last))
       rot2 = RotationMatrix.new(axis, angle)
       rot3 = rot2 * rot1
 

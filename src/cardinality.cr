@@ -16,7 +16,7 @@ module SymmSpecies
     # respect to the direction / axis it performs it in. Thus we are interested
     # in "how many" 2-fold axes a group has, not which directions they are in.
     #
-    # Here is the IsometryCardinality Hash for mm2:
+    # Here is the IsometryCardinality Hash for 2mm:
     #
     # ```
     # {:identity => 1, :rotation_2 => 1, :mirror => 2}
