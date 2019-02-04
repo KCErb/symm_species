@@ -19,8 +19,8 @@ module SymmSpecies
   #  which are a bit more complex then the simple name of a
   # [Symm32::Axis](https://crystal-symmetry.gitlab.io/symm32/Symm32/Axis.html).
   struct Orientation
-    getter child : PointGroup
-    getter parent : PointGroup
+    getter child : Symm32::PointGroup
+    getter parent : Symm32::PointGroup
 
     # correspondence of child direction to parent direction,
     # { child, parent }
@@ -28,7 +28,7 @@ module SymmSpecies
     # {child's Z, parent's Z)}
     # or if the child's z direction is in the paren't plane:
     # {child's z-direction, parent's T0}
-    property correspondence = Array(Tuple(Direction, Direction)).new
+    property correspondence = Array(Tuple(Symm32::Direction, Symm32::Direction)).new
 
     # Parent's classification ([`Symm32::AxisKind`](https://crystal-symmetry.gitlab.io/symm32/Symm32/AxisKind.html))
     # of the direction in which the child has
@@ -39,10 +39,10 @@ module SymmSpecies
     # The parent possesses a classification for this direction.
     # In the example given in this class's "Overview" we considered 2 in
     # 422. In the axial orientation, the `axial_classification` would be
-    # `AxisKind::Axial`, in the planar orientation, because the child's
+    # `Symm32::AxisKind::Axial`, in the planar orientation, because the child's
     # Z-direction is in the plane, the `axial_classification` would be
-    # `AxisKind::Planar`
-    property dir1_classification = AxisKind::None
+    # `Symm32::AxisKind::Planar`
+    property dir1_classification = Symm32::AxisKind::None
 
     # Similar to `dir1_classification`. This is an [`Symm32::AxisKind`](https://crystal-symmetry.gitlab.io/symm32/Symm32/AxisKind.html) which
     # communicates how the parent group views the orientation of the child's
@@ -52,9 +52,9 @@ module SymmSpecies
     # of freedom remaining is the rotation of its T-plane elements about
     # that axis. We can consider the first T-plane axis (usually T0) and
     # determine parent's classification of that direction.
-    property dir2_classification = AxisKind::None
+    property dir2_classification = Symm32::AxisKind::None
 
-    alias Fingerprint = Hash(AxisKind, Set(Symbol))
+    alias Fingerprint = Hash(Symm32::AxisKind, Set(Symbol))
 
     def initialize(@child, @parent, first_pair = nil)
       if first_pair
@@ -81,13 +81,13 @@ module SymmSpecies
       # find axis and rotation angle between first pair
       axis = child_axes.first.cross(parent_axes.first)
       angle = Math.acos(child_axes.first.dot(parent_axes.first))
-      rot1 = RotationMatrix.new(axis, angle)
+      rot1 = SymmBase::RotationMatrix.new(axis, angle)
 
       # find axis and rotation angle between second pair
       rotated_child = rot1 * child_axes.last
       axis = rotated_child.cross(parent_axes.last)
       angle = Math.acos(rotated_child.dot(parent_axes.last))
-      rot2 = RotationMatrix.new(axis, angle)
+      rot2 = SymmBase::RotationMatrix.new(axis, angle)
       rot3 = rot2 * rot1
 
       remaining_directions = child.directions - correspondence.map(&.first)
@@ -142,7 +142,7 @@ module SymmSpecies
     def fingerprint
       fingerprint = Fingerprint.new
       if correspondence.empty?
-        fingerprint[AxisKind::None] = child.isometries.map(&.kind).to_set
+        fingerprint[Symm32::AxisKind::None] = child.isometries.map(&.kind).to_set
       else
         groups = correspondence.group_by { |_, parent| parent.classification }
         groups.each do |classification, corr_arr|
@@ -153,17 +153,20 @@ module SymmSpecies
       fingerprint
     end
 
-    # determine if the two axes of the parent are distinguishable
-    private def axes_indistinguishable?
-      first_two = correspondence[0, 2]
-      indistinguishable = first_two.size == 2 &&
-                          first_two[0].last.kinds == first_two[1].last.kinds
-    end
-
-    def_hash fingerprint
+    def_hash parent, child, fingerprint
 
     def ==(other : Orientation)
-      fingerprint == other.fingerprint
+      parent == other.parent &&
+        child == other.child &&
+        fingerprint == other.fingerprint
+    end
+
+    def to_s(io)
+      io << "#<Orientation: \"#{parent.name} > #{child.name}\" : #{fingerprint}>"
+    end
+
+    def inspect
+      to_s
     end
   end
 end

@@ -2,19 +2,19 @@ require "./spec_helper"
 
 module SymmSpecies
   class Foo
-    getter isometries = Set(Isometry).new
+    getter isometries = Set(SymmBase::Isometry).new
 
     def initialize(isometries_arr)
       isometries_arr.each { |iso| @isometries << iso }
     end
   end
 
-  ISO0 = PointIsometry.parse("e")
-  ISO1 = Mirror.new(Axis::Z)
-  ISO2 = Mirror.new(Axis::T90)
-  ISO3 = Rotation.new(Axis::T0, 2)
-  ISO4 = Rotation.new(Axis::Z, 2)
-  ISO5 = Rotation.new(Axis::D1, 3)
+  ISO0 = Symm32::PointIsometry.parse("e")
+  ISO1 = Symm32::Mirror.new(Symm32::Axis::Z)
+  ISO2 = Symm32::Mirror.new(Symm32::Axis::T90)
+  ISO3 = Symm32::Rotation.new(Symm32::Axis::T0, 2)
+  ISO4 = Symm32::Rotation.new(Symm32::Axis::Z, 2)
+  ISO5 = Symm32::Rotation.new(Symm32::Axis::D1, 3)
 
   ISOMETRIES1 = [ISO0, ISO1, ISO2, ISO3, ISO4]
   ISOMETRIES2 = [ISO0, ISO1, ISO3]
@@ -23,7 +23,7 @@ module SymmSpecies
   foo1 = Foo.new(ISOMETRIES1)
   foo2 = Foo.new(ISOMETRIES2)
   foo3 = Foo.new(ISOMETRIES3)
-  foo_empty = Foo.new([] of Isometry)
+  foo_empty = Foo.new([] of SymmBase::Isometry)
 
   describe Cardinality do
     it "computes cardinality correctly" do

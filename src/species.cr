@@ -4,7 +4,7 @@ module SymmSpecies
     getter number : Int32
     getter orientation : Orientation
     property child_name : String
-    alias Fingerprint = {PointGroup, PointGroup, Orientation::Fingerprint}
+    alias Fingerprint = {Symm32::PointGroup, Symm32::PointGroup, Orientation::Fingerprint}
 
     def initialize(@number, @orientation)
       @child_name = @orientation.child.name
@@ -37,7 +37,7 @@ module SymmSpecies
     # to the parent's axis.
     def reoriented_child
       orientation.correspondence.map do |child_dir, parent_dir|
-        Direction.new(parent_dir.axis, child_dir.isometries)
+        Symm32::Direction.new(parent_dir.axis, child_dir.isometries)
       end
     end
 
@@ -47,6 +47,14 @@ module SymmSpecies
     # Tuple(String, String, Fingerprint)
     def fingerprint : Fingerprint
       {parent, child, orientation.fingerprint}
+    end
+
+    def to_s(io)
+      io << "#<Species @number=#{number} @name=\"#{name}\" >"
+    end
+
+    def inspect
+      to_s
     end
   end
 end

@@ -24,8 +24,8 @@ module SymmSpecies
       child = Symm32.point_group("1b")
       parent = Symm32.point_group("222")
       o = Orientation.new(child, parent)
-      o.dir1_classification.should eq AxisKind::None
-      o.dir2_classification.should eq AxisKind::None
+      o.dir1_classification.should eq Symm32::AxisKind::None
+      o.dir2_classification.should eq Symm32::AxisKind::None
     end
 
     it "returns plane classifications for parent 422" do
@@ -36,7 +36,7 @@ module SymmSpecies
       o = Orientation.new(child, parent, {child_first, parent_first})
       second_pair = {child.directions[1], parent.directions[1]}
       o.complete?(second_pair)
-      o.dir2_classification.should eq AxisKind::Planar
+      o.dir2_classification.should eq Symm32::AxisKind::Planar
     end
 
     it "maps child with no T plane" do
@@ -55,7 +55,7 @@ module SymmSpecies
         parent = Symm32.point_group("422")
         parent_first = parent.directions.first
         o = Orientation.new(child, parent, {child_first, parent_first})
-        parent_plane = parent.directions_perp_to(Axis::Z)
+        parent_plane = parent.directions_perp_to(Symm32::Axis::Z)
         o.complete?({child.directions[1], parent_plane[0]})
 
         # find, then verify
@@ -72,7 +72,7 @@ module SymmSpecies
         pair[1].should eq parent_plane[2]
 
         # check classification too
-        o.dir2_classification.should eq AxisKind::Planar
+        o.dir2_classification.should eq Symm32::AxisKind::Planar
       end
 
       it "completes cubic child" do
@@ -81,7 +81,7 @@ module SymmSpecies
         parent = Symm32.point_group("432")
         parent_first = parent.directions.first
         o = Orientation.new(child, parent, {child_first, parent_first})
-        parent_plane = parent.directions_perp_to(Axis::Z)
+        parent_plane = parent.directions_perp_to(Symm32::Axis::Z)
         o.complete?({child.directions[1], parent_plane[0]})
 
         pair = o.correspondence.find do |o_child, _|
@@ -90,7 +90,7 @@ module SymmSpecies
         pair[1].should eq parent.diags.first
 
         # check classification too
-        o.dir2_classification.should eq AxisKind::OnAxes
+        o.dir2_classification.should eq Symm32::AxisKind::OnAxes
       end
     end
 
@@ -139,7 +139,7 @@ module SymmSpecies
       o = Orientation.new(child, parent, {child_first, parent_first})
 
       o2 = o.clone
-      parent_plane = parent.directions_perp_to(Axis::Z)
+      parent_plane = parent.directions_perp_to(Symm32::Axis::Z)
       o.complete?({child.directions[1], parent_plane[0]})
       o2.complete?({child.directions[1], parent_plane[1]})
 

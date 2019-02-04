@@ -1,5 +1,10 @@
 module SymmSpecies
-  module NameFactory(T)
+  # add symbols to a point-group's name to indicate its orientation
+  # for example 222 could become 22+2 or 22\2
+  # the tricky part is that a point group element can
+  # have more than one character, for example 4b'/m' is
+  # just 1 direction, one "element" for naming purposes.
+  module NameFactory
     # Convert string name to isometry kind symbol
     STR_TO_SYM = {
       "m'" => :anti_mirror,
@@ -14,11 +19,14 @@ module SymmSpecies
     #
     # The general idea is that if there are just 2, then we need 1 symbol to
     # distinguish them. If 3 or 4 we need 2. So we have two passes here.
-    def self.generate_names(groups_list, species_list)
+    def self.generate_names(non_magnetic = false)
+      groups_list = non_magnetic ? Symm32::POINT_GROUPS : SymmMagnetic::POINT_GROUPS
+      species_list = non_magnetic ? NON_MAGNETIC_SPECIES : MAGNETIC_SPECIES
+
       # Determine the summit of each family since that determines uniqueness
       # among children
-      summits = Hash(Family, PointGroup).new
-      Family.each do |family|
+      summits = Hash(Symm32::Family, Symm32::PointGroup).new
+      Symm32::Family.each do |family|
         point_groups = groups_list.select { |pg| pg.family == family }
         summits[family] = point_groups.sort_by(&.isometries.size).last
       end
@@ -33,7 +41,7 @@ module SymmSpecies
       summits.each do |_, summit|
         # For each summit find duplicate names, i.e. duplicate child_names
         # and set one or two symbols on them to distinguish
-        species_arr = T.species_for(parent: summit)
+        species_arr = SymmSpecies.species_for(parent: summit, non_magnetic: non_magnetic)
 
         duplicate_names(species_arr).each do |arr_of_same|
           label_dir1(arr_of_same, name_map, summit)
@@ -43,7 +51,7 @@ module SymmSpecies
           # guard against labelling 3-fold axis with x-axis label in cubic
           # this is an edge case which I don't need to handle at the moment
           # I just realized that the logic here will handle incorrectly.
-          if arr_of_same.first.child.family == Family::Cubic
+          if arr_of_same.first.child.family == Symm32::Family::Cubic
             raise "cannot label second direction for cubic child"
           end
           label_dir2(arr_of_same, name_map, summit)
@@ -110,7 +118,7 @@ module SymmSpecies
 
     # Split name into parts like this: "4b'/m'+mm" becomes
     # ["4b'", "/", "m'+", "m", "m"]
-    private def self.name_to_parts(name)
+    def self.name_to_parts(name)
       name.scan(/(\db'|\db|\w'|\w|\/)(\||\_|\+|\\)?/m).map(&.[0])
     end
 

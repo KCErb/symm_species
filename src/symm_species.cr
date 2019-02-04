@@ -1,12 +1,8 @@
 require "symm32"
-
-module SymmSpecies
-  VERSION = "1.0.0"
-
-  include Symm32
-end
+require "symm_magnetic"
 
 require "./*"
+require "./symm_species/*"
 
 # Namespace for tools that turn the 32 point groups provided by
 # [Symm32](https://gitlab.com/crystal-symmetry/symm32) into the 212
@@ -18,30 +14,14 @@ require "./*"
 # of this module, taking any two point groups and determining the possible
 # orientations.
 module SymmSpecies
-  # This is *the* array which holds all of the results of this module (the 212
-  # species).
-  LIST = [] of Species
-  species_counter = 0
-
-  # Calculate the 212 species
-  POINT_GROUPS.each do |parent|
-    POINT_GROUPS.reverse_each do |child|
-      next if parent.name == child.name
-      factory = OrientationFactory.new(child, parent)
-      orientations = factory.calculate_orientations
-      orientations.each do |orient|
-        species_counter += 1
-        LIST << Species.new(species_counter, orient)
-      end
-    end
-  end
-
-  # Set `child_name` on species that need a special name to distinguish
-  NameFactory(SymmSpecies).generate_names(POINT_GROUPS, LIST)
+  VERSION = "1.0.0"
 
   # Get species by number
-  def self.number(num : Int32)
-    LIST.select { |species| species.number == num }.first
+  def self.number(num : Int32, non_magnetic = false)
+    list = non_magnetic ? NON_MAGNETIC_SPECIES : MAGNETIC_SPECIES
+    arr = list.select { |species| species.number == num }
+    raise "invalid species number #{num} for #{non_magnetic ? "NON_" : ""}MAGNETIC_SPECIES" if arr.empty?
+    arr.first
   end
 
   # Get species where the parent PointGroup is `parent` if provided
@@ -49,12 +29,20 @@ module SymmSpecies
   # all species.
   #
   # parent_name or child_name must be a string, the name of the group
-  def self.species_for(parent = nil, child = nil)
-    LIST.select do |species|
+  def self.species_for(parent = nil, child = nil, non_magnetic = false)
+    list = non_magnetic ? NON_MAGNETIC_SPECIES : MAGNETIC_SPECIES
+    list.select do |species|
       result = true
       result &= species.parent == parent if parent
       result &= species.child == child if child
       result
     end
+  end
+
+  def self.by_fingerprint(fingerprint : Species::Fingerprint, non_magnetic = false)
+    list = non_magnetic ? NON_MAGNETIC_SPECIES : MAGNETIC_SPECIES
+    arr = list.select { |species| species.fingerprint == fingerprint }
+    raise "invalid fingerprint #{fingerprint} for SymmSpecies" if arr.empty?
+    arr.first
   end
 end

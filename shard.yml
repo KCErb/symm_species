@@ -8,10 +8,18 @@ description: |
   Crystallographic symmetry exploration tools for the 212 "nonmagnetic" Aizu species.
 
 dependencies:
+  symm_base:
+    # gitlab: crystal-symmetry/symm_base
+    # version: 2.0.0
+    path: ../symm_base
   symm32:
-    gitlab: crystal-symmetry/symm32
-    version: 2.0.0
-    # path: ../symm32
+    # gitlab: crystal-symmetry/symm32
+    # version: 2.0.0
+    path: ../symm32
+  symm_magnetic:
+    # gitlab: crystal-symmetry/symm_magnetic
+    # version: 2.0.0
+    path: ../symm_magnetic
 
 crystal: 0.27.0
 

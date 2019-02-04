@@ -2,8 +2,8 @@ module SymmSpecies
   # Class for calculating the possible orientations of a child
   # `PointGroup` within a parent [`PointGroup`](https://crystal-symmetry.gitlab.io/symm32/Symm32/PointGroup.html).
   class OrientationFactory
-    getter child : PointGroup
-    getter parent : PointGroup
+    getter child : Symm32::PointGroup
+    getter parent : Symm32::PointGroup
 
     def initialize(@child, @parent)
       @orientations = [] of Orientation
@@ -13,7 +13,7 @@ module SymmSpecies
     # an array of `Orientation`s.
     def calculate_orientations
       return @orientations unless Cardinality.fits_within?(child, parent)
-      axis1 = Axis::Z
+      axis1 = Symm32::Axis::Z
       child_dir1 = child.select_direction(axis1)
       return handle_no_axes unless child_dir1
       # iterate through parent directions, finding possible orientations of

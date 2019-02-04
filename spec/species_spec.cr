@@ -2,51 +2,35 @@ require "./spec_helper"
 
 module SymmSpecies
   describe Species do
+    test_species = Species.new(11, test_orientation)
+
     it "has a number" do
-      LIST[0].number.should eq 1
+      test_species.number.should eq 11
     end
 
     it "has a name" do
-      LIST[0].name.should eq "1b > 1"
-      LIST[177].name.should eq "4b3m > m\\"
+      test_species.name.should eq "222 > 1b"
     end
 
     it "counts number of orientational domains correctly" do
-      SymmSpecies.number(155).n_domain.should eq 6
+      test_species.n_domain.should eq 2
     end
 
     it "can compute child's directions in parent's orientation" do
       # 4b2m > 2|  so the 2 is the only child dir and in parent it is Z
-      species = SymmSpecies.number(45)
+      species = SymmSpecies.number(45, non_magnetic: true)
       z_dir = species.reoriented_child.first
-      z_dir.axis.should eq Axis::Z
+      z_dir.axis.should eq Symm32::Axis::Z
 
       # 4b2m > 2_  so the 2 is the only child dir and in parent it is in T plane
-      species = SymmSpecies.number(46)
+      species = SymmSpecies.number(46, non_magnetic: true)
       z_dir = species.reoriented_child.first
-      z_dir.axis.should eq Axis::T0
+      z_dir.axis.should eq Symm32::Axis::T0
     end
 
-    describe "#child_name" do
-      it "determines child_name for species 4" do
-        species = SymmSpecies.number(4)
-        species.child_name.should eq "m"
-      end
-
-      it "determines child_name for species 27" do
-        species = SymmSpecies.number(27)
-        species.child_name.should eq "m|"
-      end
-
-      it "determines child_name for species 154" do
-        species = SymmSpecies.number(154)
-        species.child_name.should eq "2+m+m"
-      end
-
-      it "determines child_name for species 176" do
-        species = SymmSpecies.number(176)
-        species.child_name.should eq "2+m\\m"
-      end
+    it "has correct child_name for species 176" do
+      species = SymmSpecies.number(176, non_magnetic: true)
+      species.child_name.should eq "2+m\\m"
     end
 
     describe "#fingerprint" do

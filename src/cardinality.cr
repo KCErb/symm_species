@@ -27,7 +27,7 @@ module SymmSpecies
     alias IsometryCardinality = Hash(Symbol, Int32)
 
     # Turn an array of `Isometry`s into an `IsometryCardinality` Hash.
-    def self.compute_cardinality(isometries : Set(Isometry))
+    def self.compute_cardinality(isometries : Set(SymmBase::Isometry))
       by_kind = isometries.group_by { |iso| iso.kind }
       by_kind.map { |k, v| {k, v.size} }.to_h
     end
@@ -90,7 +90,7 @@ module SymmSpecies
     # Converts an array of objects with cardinality into a single
     # IsometryCardinality
     private def self.compute_cardinality_arr(other_arr)
-      empty = Set(Isometry).new
+      empty = Set(SymmBase::Isometry).new
       all_isometries = other_arr.reduce(empty) do |acc, other|
         acc | other.isometries
       end
